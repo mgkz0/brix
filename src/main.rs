@@ -2,6 +2,8 @@
 #![no_main]
 
 pub mod terminal;
+
+use core::fmt::Write;
 use uefi::mem::memory_map::{MemoryMapOwned};
 use uefi::prelude::*;
 use uefi::proto::console::gop::{GraphicsOutput};
@@ -14,11 +16,12 @@ fn kernel_main(fb: &KernelFramebuffer, memory_map: MemoryMapOwned) -> ! {
             fb.write(x, y, 0x000000);
         }
     }
-
-    let terminal = Terminal::from_framebuffer(fb);
-    for (i, ch) in "Pesos".chars().enumerate() {
-        terminal.write_char(20 + i, 20, ch, 0x30FF00, 0x000000);
-    }    
+    
+    let mut terminal = Terminal::from_kern_fb(fb);
+    
+    writeln!(terminal, "Kernel started").unwrap();
+    writeln!(terminal, "Decimal: {}", 12345).unwrap();
+    writeln!(terminal, "Hex: {:#x}", 12345).unwrap();
     loop {
         unsafe {
             core::arch::asm!(

@@ -1,3 +1,5 @@
+use core::fmt;
+
 use uefi::proto::console::gop::{FrameBuffer, ModeInfo, PixelFormat};
 use font8x8::{BASIC_FONTS, UnicodeFonts};
 
@@ -44,23 +46,33 @@ pub struct Terminal<'a> {
     pub fb: &'a KernelFramebuffer,
     pub width: usize,
     pub height: usize,
+    pub x: usize,
+    pub y: usize,
+    pub bg: u32,
+    pub fg: u32
 }
 
 impl<'a> Terminal<'a> {
-    pub fn from_framebuffer(fb: &'a KernelFramebuffer) -> Self {
+    pub fn from_kern_fb(fb: &'a KernelFramebuffer) -> Self {
         let width: usize = fb.width / 8;
         let height: usize = fb.height / 8;
         Terminal{
-            fb: fb, width: width, height: height
+            fb: fb, width: width, height: height, x: 0, y: 0, bg: 0x000000, fg: 0xFFFFFF
         }
     }
+    
+    pub fn set_color(&mut self, fg: u32, bg: u32) {
+        self.fg = fg;
+        self.bg = bg;
+    }
 
-    pub fn write_char(
-        &self, x: usize, y: usize, ch: char, fg: u32, bg: u32
+    pub fn draw_char(
+        &self, x: usize, y: usize, ch: char
     ) {
         if x >= self.width || y >= self.height {
             return;
         }
+
         let Some(glyph) = BASIC_FONTS.get(ch) else {
             return;
         };
@@ -71,12 +83,36 @@ impl<'a> Terminal<'a> {
             for coll in 0..8 {
                 let is_set = bit & (1u8 << coll) != 0;
                 let color = if is_set {
-                    fg
+                    self.fg
                 } else {
-                    bg
+                    self.bg
                 };
                 self.fb.write(x_fb + coll, y_fb + row, color);
             }
        }
     }
+
+    fn newline(&mut self) {
+        self.x = 0;
+        self.y += 1;
+    }
+}
+
+
+impl fmt::Write for Terminal<'_> {
+    fn write_str(&mut self, text: &str) -> fmt::Result {
+        for ch in text.chars() {
+            if self.x >= self.width {
+                self.newline();
+            }
+
+            if self.y >= self.height {
+                return Ok(());
+            }
+            self.draw_char(self.x, self.y, ch);
+            self.x += 1;
+        }
+        Ok(())
+    }
+
 }
