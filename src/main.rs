@@ -1,53 +1,24 @@
 #![no_std]
 #![no_main]
 
+pub mod terminal;
 use uefi::mem::memory_map::{MemoryMapOwned};
 use uefi::prelude::*;
-use uefi::proto::console::gop::{FrameBuffer, GraphicsOutput, ModeInfo, PixelFormat};
+use uefi::proto::console::gop::{GraphicsOutput};
 
-
-#[derive(Clone, Copy, Debug)]
-pub struct KernelFramebuffer {
-    pub address: u64,
-    pub size: usize,
-    pub width: usize,
-    pub height: usize,
-    pub stride: usize,
-    pub pixel_format: PixelFormat,
-}
-
-impl KernelFramebuffer {
-    pub fn from_gop(
-        framebuffer: &mut FrameBuffer,
-        mode_info: &ModeInfo
-    ) -> Self {
-        let (width, height) = mode_info.resolution();
-        Self{
-            address: framebuffer.as_mut_ptr() as u64,
-            size: framebuffer.size(),
-            width: width,
-            height: height,
-            stride: mode_info.stride(),
-            pixel_format: mode_info.pixel_format()
-        }
-    }
-
-    pub fn write(&self, x: usize, y: usize, color: u32) {
-        if x >= self.width || y >= self.height {return}
-        let offset = (y * self.stride + x) * 4;
-        let pixel = (self.address as usize + offset) as *mut u32;
-        unsafe {
-            pixel.write_volatile(color);
-        }
-    }
-}
+use crate::terminal::{KernelFramebuffer, Terminal};
 
 fn kernel_main(fb: &KernelFramebuffer, memory_map: MemoryMapOwned) -> ! {
     for y in 0..fb.height {
         for x in 0..fb.width {
-            fb.write(x, y, 0xFFFF_FFFF);
+            fb.write(x, y, 0x000000);
         }
     }
+
+    let terminal = Terminal::from_framebuffer(fb);
+    for (i, ch) in "Pesos".chars().enumerate() {
+        terminal.write_char(20 + i, 20, ch, 0x30FF00, 0x000000);
+    }    
     loop {
         unsafe {
             core::arch::asm!(
