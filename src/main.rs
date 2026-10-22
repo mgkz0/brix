@@ -19,9 +19,9 @@ fn kernel_main(fb: &KernelFramebuffer, memory_map: MemoryMapOwned) -> ! {
     
     let mut terminal = Terminal::from_kern_fb(fb);
     
-    writeln!(terminal, "Kernel started").unwrap();
-    writeln!(terminal, "Decimal: {}", 12345).unwrap();
-    writeln!(terminal, "Hex: {:#x}", 12345).unwrap();
+    for i in 0..20 {
+        writeln!(terminal, "# {}\n", i).unwrap();
+    }
     loop {
         unsafe {
             core::arch::asm!(

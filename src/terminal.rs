@@ -105,9 +105,12 @@ impl fmt::Write for Terminal<'_> {
             if self.x >= self.width {
                 self.newline();
             }
-
             if self.y >= self.height {
                 return Ok(());
+            }
+            if ch == '\n' {
+                self.newline();
+                continue;
             }
             self.draw_char(self.x, self.y, ch);
             self.x += 1;
