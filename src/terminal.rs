@@ -82,9 +82,13 @@ impl Terminal {
     }
 
     pub fn draw_char(
-        &self, x: usize, y: usize, ch: char
+        &mut self, ch: char
     ) {
-        if x >= self.width || y >= self.height {
+        if self.x >= self.width || ch == '\n' {
+            self.newline();
+        }
+
+        if self.y >= self.height {
             return;
         }
 
@@ -92,8 +96,8 @@ impl Terminal {
             return;
         };
 
-        let x_fb = x * 8;
-        let y_fb = y * 8;
+        let x_fb = self.x * 8;
+        let y_fb = self.y * 8;
         for (row, bit) in glyph.iter().copied().enumerate() {
             for coll in 0..8 {
                 let is_set = bit & (1u8 << coll) != 0;
@@ -104,7 +108,8 @@ impl Terminal {
                 };
                 self.fb.write(x_fb + coll, y_fb + row, color);
             }
-       }
+        }
+        self.x += 1;
     }
 
     fn newline(&mut self) {
@@ -117,18 +122,7 @@ impl Terminal {
 impl fmt::Write for Terminal {
     fn write_str(&mut self, text: &str) -> fmt::Result {
         for ch in text.chars() {
-            if self.x >= self.width {
-                self.newline();
-            }
-            if self.y >= self.height {
-                return Ok(());
-            }
-            if ch == '\n' {
-                self.newline();
-                continue;
-            }
-            self.draw_char(self.x, self.y, ch);
-            self.x += 1;
+            self.draw_char(ch);
         }
         Ok(())
     }
@@ -142,7 +136,12 @@ pub fn print_args(args: fmt::Arguments) {
     }
 }
 
+pub fn print_char(ch: char) {
+    if let Some(terminal) = TERMINAL.lock().as_mut() {
+        terminal.draw_char(ch);
+    }
 
+}
 
 #[macro_export]
 macro_rules! print {
@@ -150,3 +149,12 @@ macro_rules! print {
         $crate::terminal::print_args(format_args!($($arg)*))
     };
 }
+
+#[macro_export]
+macro_rules! println {
+    () => {
+        $crate::print!("\n")
+    };
+    ($($arg:tt)*) => {
+        $crate::print!("{}\n", format_args!($($arg)*))
+    };}
