@@ -1,7 +1,17 @@
-use core::fmt;
+use core::fmt::{self, Write};
 
+use spin::Mutex;
 use uefi::proto::console::gop::{FrameBuffer, ModeInfo, PixelFormat};
 use font8x8::{BASIC_FONTS, UnicodeFonts};
+
+
+pub static TERMINAL: Mutex<Option<Terminal>> = Mutex::new(None);
+
+
+pub fn init_from_kernel_fb(fb: KernelFramebuffer) {
+    let terminal = Terminal::from_kern_fb(fb);
+    *TERMINAL.lock() = Some(terminal)
+}
 
 
 #[derive(Clone, Copy, Debug)]
@@ -42,8 +52,8 @@ impl KernelFramebuffer {
 
 
 #[derive(Clone, Copy, Debug)]
-pub struct Terminal<'a> {
-    pub fb: &'a KernelFramebuffer,
+pub struct Terminal {
+    pub fb: KernelFramebuffer,
     pub width: usize,
     pub height: usize,
     pub x: usize,
@@ -52,8 +62,13 @@ pub struct Terminal<'a> {
     pub fg: u32
 }
 
-impl<'a> Terminal<'a> {
-    pub fn from_kern_fb(fb: &'a KernelFramebuffer) -> Self {
+impl Terminal {
+    pub fn from_kern_fb(fb: KernelFramebuffer) -> Self {
+        for y in 0..fb.height {
+            for x in 0..fb.width {
+                fb.write(x, y, 0x000000);
+            }
+        }
         let width: usize = fb.width / 8;
         let height: usize = fb.height / 8;
         Terminal{
@@ -99,7 +114,7 @@ impl<'a> Terminal<'a> {
 }
 
 
-impl fmt::Write for Terminal<'_> {
+impl fmt::Write for Terminal {
     fn write_str(&mut self, text: &str) -> fmt::Result {
         for ch in text.chars() {
             if self.x >= self.width {
@@ -118,4 +133,20 @@ impl fmt::Write for Terminal<'_> {
         Ok(())
     }
 
+}
+
+
+pub fn print_args(args: fmt::Arguments) {
+    if let Some(terminal) = TERMINAL.lock().as_mut() {
+        terminal.write_fmt(args).unwrap();
+    }
+}
+
+
+
+#[macro_export]
+macro_rules! print {
+    ($($arg:tt)*) => {
+        $crate::terminal::print_args(format_args!($($arg)*))
+    };
 }

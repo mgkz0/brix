@@ -2,35 +2,12 @@
 #![no_main]
 
 pub mod terminal;
+pub mod kern_main;
 
-use core::fmt::Write;
-use uefi::mem::memory_map::{MemoryMapOwned};
 use uefi::prelude::*;
 use uefi::proto::console::gop::{GraphicsOutput};
-
-use crate::terminal::{KernelFramebuffer, Terminal};
-
-fn kernel_main(fb: &KernelFramebuffer, memory_map: MemoryMapOwned) -> ! {
-    for y in 0..fb.height {
-        for x in 0..fb.width {
-            fb.write(x, y, 0x000000);
-        }
-    }
-    
-    let mut terminal = Terminal::from_kern_fb(fb);
-    
-    for i in 0..20 {
-        writeln!(terminal, "# {}\n", i).unwrap();
-    }
-    loop {
-        unsafe {
-            core::arch::asm!(
-            "xchg bx, bx",
-            options(nomem, nostack)
-            );
-        }
-    }
-}
+use kern_main::kernel_main;
+use crate::terminal::KernelFramebuffer;
 
 #[entry]
 fn main() -> Status {
@@ -47,7 +24,7 @@ fn main() -> Status {
         uefi::boot::exit_boot_services(None)
     };
 
-    kernel_main(&kern_fb, memory_map);
+    kernel_main(kern_fb, memory_map);
 
     Status::SUCCESS
 }
