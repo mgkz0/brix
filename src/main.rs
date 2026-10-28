@@ -1,8 +1,10 @@
+#![feature(abi_x86_interrupt)]
 #![no_std]
 #![no_main]
 
 pub mod terminal;
 pub mod kern_main;
+pub mod keyboard;
 
 use uefi::prelude::*;
 use uefi::proto::console::gop::{GraphicsOutput};
@@ -18,7 +20,7 @@ fn main() -> Status {
 
     let mode_info = boot_services.current_mode_info();
     let mut framebuffer = boot_services.frame_buffer();
-
+    
     let kern_fb = KernelFramebuffer::from_gop(&mut framebuffer, &mode_info);
     let memory_map = unsafe {
         uefi::boot::exit_boot_services(None)
