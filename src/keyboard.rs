@@ -54,8 +54,9 @@ extern "x86-interrupt" fn interrup_keyboard(
     let mut keyboard = KEYBOARD.lock();
 
     if let Ok(Some(ev)) = keyboard.add_byte(scancode) {
-        if ev.state == KeyState::Down {
-            if let Some(key) = keyboard.process_keyevent(ev) {
+        let state = ev.state;
+        if let Some(key) = keyboard.process_keyevent(ev) {
+            if state == KeyState::Down {
                 handle_keyboard_input(key);    
             }
         }
