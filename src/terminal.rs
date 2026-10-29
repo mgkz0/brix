@@ -85,20 +85,20 @@ impl Terminal {
         self.y += 1;
     }
     
-    fn draw_raw_char(&mut self, ch: char) {
+    pub fn draw_raw_char(&mut self, ch: char, x: usize, y: usize, fg: u32, bg: u32) {
         let Some(glyph) = BASIC_FONTS.get(ch) else {
             return;
         };
 
-        let x_fb = self.x * 8;
-        let y_fb = self.y * 8;
+        let x_fb = x * 8;
+        let y_fb = y * 8;
         for (row, bit) in glyph.iter().copied().enumerate() {
             for coll in 0..8 {
                 let is_set = bit & (1u8 << coll) != 0;
                 let color = if is_set {
-                    self.fg
+                    fg
                 } else {
-                    self.bg
+                    bg
                 };
                 self.fb.write(x_fb + coll, y_fb + row, color);
             }
@@ -114,7 +114,7 @@ impl Terminal {
         if self.y >= self.height {
             return;
         }
-        self.draw_raw_char(ch);
+        self.draw_raw_char(ch, self.x, self.y, self.fg, self.bg);
         self.x += 1;
     }
 
@@ -129,7 +129,7 @@ impl Terminal {
         } else {
             self.x -= 1;
         }
-        self.draw_raw_char(' ');
+        self.draw_raw_char(' ', self.x, self.y, self.fg, self.bg);
     }
 }
 
