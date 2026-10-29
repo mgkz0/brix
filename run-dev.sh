@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+cargo +nightly "fmt"
+cargo +nightly clippy --target x86_64-unknown-uefi -- -D warnings
 cargo +nightly build --target x86_64-unknown-uefi
 
 if [ -f "./esp/efi/boot/bootx64.efi" ]; then

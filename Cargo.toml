@@ -11,3 +11,16 @@ pic8259 = "0.11.0"
 spin = "0.12.3"
 uefi = { version = "0.41.0", features = ["logger", "panic_handler"] }
 x86_64 = "0.15.5"
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "warn"
+missing_docs = "allow"
+
+[lints.clippy]
+all = "warn"
+correctness = { level = "deny", priority = -1 }
+suspicious = "warn"
+perf = "warn"
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"

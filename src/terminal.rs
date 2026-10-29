@@ -1,17 +1,14 @@
 use core::fmt;
+use font8x8::{BASIC_FONTS, UnicodeFonts};
 use spin::Mutex;
 use uefi::proto::console::gop::{FrameBuffer, ModeInfo, PixelFormat};
-use font8x8::{BASIC_FONTS, UnicodeFonts};
-
 
 pub static TERMINAL: Mutex<Option<Terminal>> = Mutex::new(None);
-
 
 pub fn init_from_kernel_fb(fb: KernelFramebuffer) {
     let terminal = Terminal::from_kern_fb(fb);
     *TERMINAL.lock() = Some(terminal)
 }
-
 
 #[derive(Clone, Copy, Debug)]
 pub struct KernelFramebuffer {
@@ -24,23 +21,22 @@ pub struct KernelFramebuffer {
 }
 
 impl KernelFramebuffer {
-    pub fn from_gop(
-        framebuffer: &mut FrameBuffer,
-        mode_info: &ModeInfo
-    ) -> Self {
+    pub fn from_gop(framebuffer: &mut FrameBuffer, mode_info: &ModeInfo) -> Self {
         let (width, height) = mode_info.resolution();
-        KernelFramebuffer{
+        KernelFramebuffer {
             address: framebuffer.as_mut_ptr() as u64,
             size: framebuffer.size(),
-            width: width,
-            height: height,
+            width,
+            height,
             stride: mode_info.stride(),
-            pixel_format: mode_info.pixel_format()
+            pixel_format: mode_info.pixel_format(),
         }
     }
 
     pub fn write(&self, x: usize, y: usize, color: u32) {
-        if x >= self.width || y >= self.height {return}
+        if x >= self.width || y >= self.height {
+            return;
+        }
         let offset = (y * self.stride + x) * 4;
         let pixel = (self.address as usize + offset) as *mut u32;
         unsafe {
@@ -48,7 +44,6 @@ impl KernelFramebuffer {
         }
     }
 }
-
 
 #[derive(Clone, Copy, Debug)]
 pub struct Terminal {
@@ -58,7 +53,7 @@ pub struct Terminal {
     pub x: usize,
     pub y: usize,
     pub bg: u32,
-    pub fg: u32
+    pub fg: u32,
 }
 
 impl Terminal {
@@ -70,11 +65,17 @@ impl Terminal {
         }
         let width: usize = fb.width / 8;
         let height: usize = fb.height / 8;
-        Terminal{
-            fb: fb, width: width, height: height, x: 0, y: 0, bg: 0x000000, fg: 0xFFFFFF
+        Terminal {
+            fb,
+            width,
+            height,
+            x: 0,
+            y: 0,
+            bg: 0x000000,
+            fg: 0xFFFFFF,
         }
     }
-    
+
     pub fn set_color(&mut self, fg: u32, bg: u32) {
         self.fg = fg;
         self.bg = bg;
@@ -84,7 +85,7 @@ impl Terminal {
         self.x = 0;
         self.y += 1;
     }
-    
+
     pub fn draw_raw_char(&mut self, ch: char, x: usize, y: usize, fg: u32, bg: u32) {
         let Some(glyph) = BASIC_FONTS.get(ch) else {
             return;
@@ -95,19 +96,13 @@ impl Terminal {
         for (row, bit) in glyph.iter().copied().enumerate() {
             for coll in 0..8 {
                 let is_set = bit & (1u8 << coll) != 0;
-                let color = if is_set {
-                    fg
-                } else {
-                    bg
-                };
+                let color = if is_set { fg } else { bg };
                 self.fb.write(x_fb + coll, y_fb + row, color);
             }
         }
     }
 
-    pub fn draw_char(
-        &mut self, ch: char
-    ) {
+    pub fn draw_char(&mut self, ch: char) {
         if self.x >= self.width || ch == '\n' {
             self.newline();
         }
@@ -117,7 +112,6 @@ impl Terminal {
         self.draw_raw_char(ch, self.x, self.y, self.fg, self.bg);
         self.x += 1;
     }
-
 
     pub fn clear_char(&mut self) {
         if self.x == 0 {
@@ -133,7 +127,6 @@ impl Terminal {
     }
 }
 
-
 impl fmt::Write for Terminal {
     fn write_str(&mut self, text: &str) -> fmt::Result {
         for ch in text.chars() {
@@ -141,9 +134,7 @@ impl fmt::Write for Terminal {
         }
         Ok(())
     }
-
 }
-
 
 #[macro_export]
 macro_rules! print {
@@ -153,7 +144,6 @@ macro_rules! print {
         }
     };
 }
-
 
 #[macro_export]
 macro_rules! println {
