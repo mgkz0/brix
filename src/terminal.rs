@@ -1,5 +1,4 @@
-use core::fmt::{self, Write};
-
+use core::fmt;
 use spin::Mutex;
 use uefi::proto::console::gop::{FrameBuffer, ModeInfo, PixelFormat};
 use font8x8::{BASIC_FONTS, UnicodeFonts};
@@ -81,17 +80,12 @@ impl Terminal {
         self.bg = bg;
     }
 
-    pub fn draw_char(
-        &mut self, ch: char
-    ) {
-        if self.x >= self.width || ch == '\n' {
-            self.newline();
-        }
-
-        if self.y >= self.height {
-            return;
-        }
-
+    fn newline(&mut self) {
+        self.x = 0;
+        self.y += 1;
+    }
+    
+    fn draw_raw_char(&mut self, ch: char) {
         let Some(glyph) = BASIC_FONTS.get(ch) else {
             return;
         };
@@ -109,12 +103,33 @@ impl Terminal {
                 self.fb.write(x_fb + coll, y_fb + row, color);
             }
         }
+    }
+
+    pub fn draw_char(
+        &mut self, ch: char
+    ) {
+        if self.x >= self.width || ch == '\n' {
+            self.newline();
+        }
+        if self.y >= self.height {
+            return;
+        }
+        self.draw_raw_char(ch);
         self.x += 1;
     }
 
-    fn newline(&mut self) {
-        self.x = 0;
-        self.y += 1;
+
+    pub fn clear_char(&mut self) {
+        if self.x == 0 {
+            if self.y > 0 {
+                self.x = self.width;
+                self.y -= 1;
+            }
+            return;
+        } else {
+            self.x -= 1;
+        }
+        self.draw_raw_char(' ');
     }
 }
 
@@ -130,25 +145,15 @@ impl fmt::Write for Terminal {
 }
 
 
-pub fn print_args(args: fmt::Arguments) {
-    if let Some(terminal) = TERMINAL.lock().as_mut() {
-        terminal.write_fmt(args).unwrap();
-    }
-}
-
-pub fn print_char(ch: char) {
-    if let Some(terminal) = TERMINAL.lock().as_mut() {
-        terminal.draw_char(ch);
-    }
-
-}
-
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => {
-        $crate::terminal::print_args(format_args!($($arg)*))
+        if let Some(terminal) = $crate::terminal::TERMINAL.lock().as_mut() {
+            terminal.write_fmt(format_args!($($arg)*));
+        }
     };
 }
+
 
 #[macro_export]
 macro_rules! println {
@@ -157,4 +162,5 @@ macro_rules! println {
     };
     ($($arg:tt)*) => {
         $crate::print!("{}\n", format_args!($($arg)*))
-    };}
+    };
+}
