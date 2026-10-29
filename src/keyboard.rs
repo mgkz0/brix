@@ -5,19 +5,31 @@ use pic8259::ChainedPics;
 use spin::LazyLock;
 use x86_64::structures::idt::InterruptDescriptorTable;
 
-static IDT: LazyLock<InterruptDescriptorTable> = LazyLock::new(|| {
+static KEYBOARD_IDT: LazyLock<InterruptDescriptorTable> = LazyLock::new(|| {
     let mut idt = InterruptDescriptorTable::new();
     idt[33].set_handler_fn(interrup_keyboard);
     idt
 });
 
-pub fn init_idt() {
-    IDT.load();
-}
-
 pub static PICS: Mutex<ChainedPics> = Mutex::new(unsafe{ChainedPics::new(32, 40)});
 pub static KEYBOARD: Mutex<PS2Keyboard<Us104Key, ScancodeSet1>> = Mutex::new(
     PS2Keyboard::new(ScancodeSet1::new(), Us104Key, HandleControl::Ignore));
+
+
+pub fn init_keyboard() {
+    KEYBOARD_IDT.load();
+    
+    unsafe {
+        crate::keyboard::PICS.lock().initialize();
+    }
+
+    unsafe {
+        let mut master_mask_port = Port::<u8>::new(0x21);
+        let mut mask = master_mask_port.read();
+        mask &= !(1 << 1); // ALLOW IRQ Mask Bit for keyboard interrupts
+        master_mask_port.write(mask); 
+    }
+}
 
 extern "x86-interrupt" fn interrup_keyboard(
     _frame: InterruptStackFrame
