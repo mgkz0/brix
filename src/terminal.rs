@@ -5,8 +5,8 @@ use uefi::proto::console::gop::{FrameBuffer, ModeInfo, PixelFormat};
 
 pub static TERMINAL: Mutex<Option<Terminal>> = Mutex::new(None);
 
-pub fn init_from_kernel_fb(fb: KernelFramebuffer) {
-    let terminal = Terminal::from_kern_fb(fb);
+pub fn init_from_kernel_fb(fb: KernelFramebuffer, fg: u32, bg: u32) {
+    let terminal = Terminal::from_kern_fb(fb, fg, bg);
     *TERMINAL.lock() = Some(terminal)
 }
 
@@ -57,7 +57,7 @@ pub struct Terminal {
 }
 
 impl Terminal {
-    pub fn from_kern_fb(fb: KernelFramebuffer) -> Self {
+    pub fn from_kern_fb(fb: KernelFramebuffer, fg: u32, bg: u32) -> Self {
         for y in 0..fb.height {
             for x in 0..fb.width {
                 fb.write(x, y, 0x000000);
@@ -71,8 +71,8 @@ impl Terminal {
             height,
             x: 0,
             y: 0,
-            bg: 0x000000,
-            fg: 0xFFFFFF,
+            bg,
+            fg,
         }
     }
 

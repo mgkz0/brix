@@ -4,6 +4,7 @@
 
 pub mod kern_main;
 pub mod keyboard;
+pub mod memory;
 pub mod terminal;
 
 use crate::terminal::KernelFramebuffer;
@@ -31,9 +32,9 @@ fn main() -> Status {
     let mut framebuffer = boot_services.frame_buffer();
 
     let kern_fb = KernelFramebuffer::from_gop(&mut framebuffer, &mode_info);
-    let memory_map = unsafe { uefi::boot::exit_boot_services(None) };
+    let mm = unsafe { uefi::boot::exit_boot_services(None) };
 
-    kernel_main(kern_fb, memory_map);
+    kernel_main(kern_fb, mm);
     #[allow(unreachable_code)]
     Status::SUCCESS
 }
