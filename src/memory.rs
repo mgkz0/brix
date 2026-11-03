@@ -5,7 +5,6 @@ use uefi::{
 
 pub const PAGE_SIZE: u64 = 4096;
 
-
 pub struct FrameAllocator {
     pub next_frame: Option<u64>,
     pub mem_map: MemoryMapOwned,
@@ -34,14 +33,12 @@ impl FrameAllocator {
     }
 
     pub fn allocate_frame(&mut self) -> Option<u64> {
-        let allocated = self.next_frame else {
-            return None;
-        };
+        let allocated = self.next_frame?;
 
-        if self.current_page + 1 <= self.page_count {
-            self.next_frame = Some(PAGE_SIZE + allocated?);
+        if self.current_page + 1 < self.page_count {
+            self.next_frame = Some(allocated + PAGE_SIZE);
             self.current_page += 1;
-            return allocated;
+            Some(allocated)
         } else {
             for (index, m) in self.mem_map.entries().enumerate().skip(self.index + 1) {
                 if m.ty != MemoryType::CONVENTIONAL {
@@ -51,7 +48,7 @@ impl FrameAllocator {
                 self.page_count = m.page_count;
                 self.current_page = 1;
                 self.index = index;
-                return allocated;
+                return Some(allocated);
             }
             self.next_frame = None;
             None
