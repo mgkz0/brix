@@ -1,48 +1,15 @@
+pub mod framebuffer;
+
 use core::fmt;
 use font8x8::{BASIC_FONTS, UnicodeFonts};
+use framebuffer::KernelFramebuffer;
 use spin::Mutex;
-use uefi::proto::console::gop::{FrameBuffer, ModeInfo, PixelFormat};
 
 pub static TERMINAL: Mutex<Option<Terminal>> = Mutex::new(None);
 
 pub fn init_from_kernel_fb(fb: KernelFramebuffer, fg: u32, bg: u32) {
     let terminal = Terminal::from_kern_fb(fb, fg, bg);
     *TERMINAL.lock() = Some(terminal)
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct KernelFramebuffer {
-    pub address: u64,
-    pub size: usize,
-    pub width: usize,
-    pub height: usize,
-    pub stride: usize,
-    pub pixel_format: PixelFormat,
-}
-
-impl KernelFramebuffer {
-    pub fn from_gop(framebuffer: &mut FrameBuffer, mode_info: &ModeInfo) -> Self {
-        let (width, height) = mode_info.resolution();
-        KernelFramebuffer {
-            address: framebuffer.as_mut_ptr() as u64,
-            size: framebuffer.size(),
-            width,
-            height,
-            stride: mode_info.stride(),
-            pixel_format: mode_info.pixel_format(),
-        }
-    }
-
-    pub fn write(&self, x: usize, y: usize, color: u32) {
-        if x >= self.width || y >= self.height {
-            return;
-        }
-        let offset = (y * self.stride + x) * 4;
-        let pixel = (self.address as usize + offset) as *mut u32;
-        unsafe {
-            pixel.write_volatile(color);
-        }
-    }
 }
 
 #[derive(Clone, Copy, Debug)]

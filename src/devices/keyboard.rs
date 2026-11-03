@@ -25,7 +25,7 @@ pub fn init_keyboard() {
     KEYBOARD_IDT.load();
 
     unsafe {
-        crate::keyboard::PICS.lock().initialize();
+        PICS.lock().initialize();
     }
 
     unsafe {
