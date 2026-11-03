@@ -1,14 +1,8 @@
+use crate::memory::{MemoryError, PAGE_SIZE};
 use uefi::{
     boot::MemoryType,
     mem::memory_map::{MemoryMap, MemoryMapOwned},
 };
-
-pub const PAGE_SIZE: u64 = 4096;
-
-#[derive(Debug)]
-pub enum MemoryError {
-    NoUsableMemory,
-}
 
 pub struct FrameAllocator {
     pub next_frame: u64,

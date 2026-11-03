@@ -2,13 +2,13 @@
 #![no_std]
 #![no_main]
 
+pub mod devices;
 pub mod kern_main;
-pub mod keyboard;
 pub mod memory;
 pub mod panic;
 pub mod terminal;
 
-use crate::terminal::KernelFramebuffer;
+use crate::terminal::framebuffer::KernelFramebuffer;
 use kern_main::kernel_main;
 use uefi::prelude::*;
 use uefi::proto::console::gop::GraphicsOutput;
