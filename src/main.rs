@@ -5,6 +5,7 @@
 pub mod kern_main;
 pub mod keyboard;
 pub mod memory;
+pub mod panic;
 pub mod terminal;
 
 use crate::terminal::KernelFramebuffer;
