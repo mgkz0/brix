@@ -141,7 +141,7 @@ macro_rules! print {
     ($($arg:tt)*) => {{
         use core::fmt::Write;
         if let Some(terminal) = $crate::terminal::TERMINAL.lock().as_mut() {
-            terminal.write_fmt(format_args!($($arg)*));
+            let _ = terminal.write_fmt(format_args!($($arg)*));
         }
     }};
 }
