@@ -3,7 +3,6 @@ use uefi::{
     boot::MemoryType,
     mem::memory_map::{MemoryMap, MemoryMapOwned},
 };
-use x86_64::structures::paging::frame;
 use core::ptr::addr_of_mut;
 
 // 4 GiB max available bitmap size (For testing)
@@ -44,10 +43,13 @@ pub struct PMM {
 
 impl PMM {
     fn is_free(&self, frame_idx: usize) -> bool {
-        (self.bitmap[frame_idx / 64] & (1u64 << (frame_idx % 64))) == 0
+        let bitmap_idx = frame_idx / 64;
+        if bitmap_idx > self.bitmap.len() {return false};
+
+        (self.bitmap[bitmap_idx] & (1u64 << (frame_idx % 64))) == 0
     }
     
-    pub fn from_mmap(mem_map: MemoryMapOwned) -> Result<Self, MemoryError> {
+    pub unsafe fn from_mmap(mem_map: MemoryMapOwned) -> Result<Self, MemoryError> {
         for (reg_idx, reg) in mem_map.entries().enumerate() {
             if reg.ty == MemoryType::CONVENTIONAL {
                 let bitmap = unsafe {&mut *addr_of_mut!(BITMAP)}; 
@@ -63,23 +65,17 @@ impl PMM {
     }
 
     fn allocate_from_reg(&mut self) -> Option<Frame> {
-        if self.mem_reg.current_page < self.mem_reg.page_count {
-            let range = self.mem_reg.current_page..self.mem_reg.page_count;
-            for page in range {
-                self.mem_reg.current_page = page;
-                let frame = self.mem_reg.frame();
-                if self.is_free(frame.idx) {
-                    self.bitmap[frame.idx / 64] |= 1u64 << (frame.idx % 64);
-                    if self.mem_reg.current_page + 1 < self.mem_reg.page_count {
-                        self.mem_reg.current_page += 1;
-                    }
-                    return Some(frame)
-                }
+        while self.mem_reg.current_page < self.mem_reg.page_count {
+            let frame = self.mem_reg.frame();
+            self.mem_reg.current_page += 1;
+            if self.is_free(frame.idx) {
+                self.bitmap[frame.idx / 64] |= 1u64 << (frame.idx % 64);
+                return Some(frame)
             }
         }
         None
     }
-
+ 
     pub fn allocate_frame(&mut self) -> Result<Frame, MemoryError> {
         if let Some(frame) = self.allocate_from_reg() { 
             return Ok(frame) 
@@ -87,7 +83,7 @@ impl PMM {
         else {
             for (reg_idx, reg) in self.mem_map.entries().enumerate().skip(self.mem_reg.idx + 1) {
                 if reg.ty == MemoryType::CONVENTIONAL {
-                    self.mem_reg = MemoryRegion::new(reg_idx, 0, reg.phys_start, reg.page_count);
+                    self.mem_reg = MemoryRegion::new(reg_idx, 0, addr_start, page_count);
                     if let Some(frame) = self.allocate_from_reg() { return Ok(frame) }
                 }
             }
