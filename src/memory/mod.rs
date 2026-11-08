@@ -1,4 +1,4 @@
-pub mod frame_allocator;
+pub mod physical;
 
 pub const PAGE_SIZE: u64 = 4096;
 
