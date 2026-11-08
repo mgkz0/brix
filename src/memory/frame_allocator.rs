@@ -3,6 +3,12 @@ use uefi::{
     boot::MemoryType,
     mem::memory_map::{MemoryMap, MemoryMapOwned},
 };
+use x86_64::structures::paging::frame;
+use core::ptr::addr_of_mut;
+
+// 4 GiB max available bitmap size (For testing)
+const MAX_WORDS: usize = 16384;
+static mut BITMAP: [u64; MAX_WORDS] = [0; MAX_WORDS];
 
 
 pub struct Frame {
@@ -17,31 +23,36 @@ impl Frame {
 
 pub struct MemoryRegion {
     pub idx: usize,
-    pub current_page: u64
+    pub current_page: u64,
+    pub addr_start: u64,
+    pub page_count: u64
 }
 
 impl MemoryRegion {
-    pub fn new(idx: usize) -> Self {Self{idx, current_page: 0}}
+    pub fn new(idx: usize, current_page: u64, addr_start: u64, page_count: u64) -> Self {
+        Self{idx, current_page, addr_start, page_count}
+    }
 
-    pub fn from_page(idx: usize, page: u64) -> Self {Self{idx, current_page: page}}
+    pub fn frame(&self) -> Frame {return Frame::new(self.addr_start + PAGE_SIZE * self.current_page)}
 }
 
 pub struct PMM {
-    next_frame: Frame,
     mem_map: MemoryMapOwned,
     mem_reg: MemoryRegion,
-    bitmap: u64,
+    bitmap: &'static mut [u64],
 }
 
 impl PMM {
+    fn is_free(&self, frame_idx: usize) -> bool {
+        (self.bitmap[frame_idx / 64] & (1u64 << (frame_idx % 64))) == 0
+    }
+    
     pub fn from_mmap(mem_map: MemoryMapOwned) -> Result<Self, MemoryError> {
-        for (reg_idx, mem_reg) in mem_map.entries().enumerate() {
-            if mem_reg.ty == MemoryType::CONVENTIONAL {            
-                let next_frame = Frame::new(mem_reg.phys_start);
-                let bitmap: u64 = 0;
-                let mem_reg: MemoryRegion = MemoryRegion::new(reg_idx);
+        for (reg_idx, reg) in mem_map.entries().enumerate() {
+            if reg.ty == MemoryType::CONVENTIONAL {
+                let bitmap = unsafe {&mut *addr_of_mut!(BITMAP)}; 
+                let mem_reg: MemoryRegion = MemoryRegion::new(reg_idx, 0, reg.phys_start, reg.page_count);
                 return Ok(Self {
-                    next_frame,
                     mem_map,
                     mem_reg,
                     bitmap,
@@ -51,40 +62,53 @@ impl PMM {
         Err(MemoryError::NoUsableMemory)
     }
 
-    pub fn allocate_frame(&mut self) -> Result<Frame, MemoryError> {
-        let alloc_frame = self.next_frame;
-        self.bitmap |= 1u64 << alloc_frame.idx;
-        let Some(current_mem_reg) = self.mem_map.get(self.mem_reg.idx) else {
-            return Err(MemoryError::NoUsableMemory)
-        };
-
-        if self.mem_reg.current_page < current_mem_reg.page_count {
-            self.next_frame = Frame::new(alloc_frame.addr() + PAGE_SIZE);
-            self.mem_reg.current_page += 1;
-            Ok(alloc_frame)
-        } else {
-            for (reg_idx, mem_reg) in self.mem_map.entries().enumerate().skip(self.mem_reg.idx + 1) {
-                if mem_reg.ty == MemoryType::CONVENTIONAL {
-                    self.next_frame = Frame::new(mem_reg.phys_start);
-                    self.mem_reg = MemoryRegion::new(reg_idx);
-                    return Ok(alloc_frame);
+    fn allocate_from_reg(&mut self) -> Option<Frame> {
+        if self.mem_reg.current_page < self.mem_reg.page_count {
+            let range = self.mem_reg.current_page..self.mem_reg.page_count;
+            for page in range {
+                self.mem_reg.current_page = page;
+                let frame = self.mem_reg.frame();
+                if self.is_free(frame.idx) {
+                    self.bitmap[frame.idx / 64] |= 1u64 << (frame.idx % 64);
+                    if self.mem_reg.current_page + 1 < self.mem_reg.page_count {
+                        self.mem_reg.current_page += 1;
+                    }
+                    return Some(frame)
                 }
             }
-            Err(MemoryError::NoUsableMemory)
         }
+        None
+    }
+
+    pub fn allocate_frame(&mut self) -> Result<Frame, MemoryError> {
+        if let Some(frame) = self.allocate_from_reg() { 
+            return Ok(frame) 
+        } 
+        else {
+            for (reg_idx, reg) in self.mem_map.entries().enumerate().skip(self.mem_reg.idx + 1) {
+                if reg.ty == MemoryType::CONVENTIONAL {
+                    self.mem_reg = MemoryRegion::new(reg_idx, 0, reg.phys_start, reg.page_count);
+                    if let Some(frame) = self.allocate_from_reg() { return Ok(frame) }
+                }
+            }
+        }
+        Err(MemoryError::NoUsableMemory)
+        
     }
 
     pub fn deallocate_frame(&mut self, frame: Frame) {
-        self.bitmap &= !(1u64 << frame.idx);
-        if frame.idx < self.next_frame.idx {
+        if self.is_free(frame.idx) { return };
+
+        self.bitmap[frame.idx / 64] &= !(1u64 << (frame.idx % 64));
+        if frame.idx < self.mem_reg.frame().idx {
              for reg_idx in (0..=self.mem_reg.idx).rev() {
-                 let Some(mem_reg) = self.mem_map.get(reg_idx) else {continue;};
-                 if mem_reg.ty == MemoryType::CONVENTIONAL {
-                     let range = mem_reg.phys_start..(mem_reg.phys_start + PAGE_SIZE * mem_reg.page_count);
+                 let Some(reg) = self.mem_map.get(reg_idx) else { continue };
+                 if reg.ty == MemoryType::CONVENTIONAL {
+                     let range = reg.phys_start..(reg.phys_start + PAGE_SIZE * reg.page_count);
                      if range.contains(&frame.addr()) {
                         let new_page = (frame.addr() - range.start) / PAGE_SIZE;
-                        self.next_frame = frame;
-                        self.mem_reg = MemoryRegion::from_page(reg_idx, new_page);
+                        self.mem_reg = MemoryRegion::new(reg_idx, new_page, reg.phys_start, reg.page_count);
+                        return
                      }
                             
                  }
