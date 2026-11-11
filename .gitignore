@@ -1,2 +1,11 @@
 /target
 /esp
+
+# Generated Limine binaries
+/iso/boot/limine/limine-bios.sys
+/iso/boot/limine/limine-bios-cd.bin
+/iso/boot/limine/limine-uefi-cd.bin
+
+/iso/EFI/BOOT/BOOTX64.EFI
+
+brix.iso

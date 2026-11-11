@@ -8,34 +8,28 @@ pub mod memory;
 pub mod panic;
 pub mod terminal;
 
-use crate::terminal::framebuffer::KernelFramebuffer;
-use kern_main::kernel_main;
-use uefi::prelude::*;
-use uefi::proto::console::gop::GraphicsOutput;
 
-#[entry]
-fn main() -> Status {
-    if uefi::helpers::init().is_err() {
-        return Status::ABORTED;
-    };
+use core::panic::PanicInfo;
 
-    let handle = match boot::get_handle_for_protocol::<GraphicsOutput>() {
-        Ok(handle) => handle,
-        Err(_) => return Status::NOT_FOUND,
-    };
+use limine::BaseRevision;
+use limine::request::{FramebufferRequest, MemmapRequest};
+use limine::framebuffer::Framebuffer;
+use x86_64::instructions::hlt;
 
-    let mut boot_services = match boot::open_protocol_exclusive::<GraphicsOutput>(handle) {
-        Ok(boot_services) => boot_services,
-        Err(_) => return Status::NOT_FOUND,
-    };
 
-    let mode_info = boot_services.current_mode_info();
-    let mut framebuffer = boot_services.frame_buffer();
+#[used]
+static BASE_REVISION: BaseRevision = BaseRevision::new();
 
-    let kern_fb = KernelFramebuffer::from_gop(&mut framebuffer, &mode_info);
-    let mm = unsafe { uefi::boot::exit_boot_services(None) };
+#[used]
+static FRAMEBUFFER_REQUEST: FramebufferRequest = FramebufferRequest::new();
 
-    kernel_main(kern_fb, mm);
-    #[allow(unreachable_code)]
-    Status::SUCCESS
+#[used]
+static MEMORY_MAP_REQUEST: MemmapRequest = MemmapRequest::new();
+
+#[unsafe(no_mangle)]
+pub extern "C" fn _start() -> ! {
+    
+    loop {
+        hlt();
+    }
 }
