@@ -1,6 +1,9 @@
 pub mod physical;
+pub mod virt;
+pub mod early;
+pub mod mmap;
+pub mod adapters;
 
-pub const PAGE_SIZE: u64 = 4096;
 
 #[derive(Debug)]
 pub enum MemoryError {
