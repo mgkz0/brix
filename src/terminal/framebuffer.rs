@@ -8,10 +8,18 @@ pub struct KernelFramebuffer {
 }
 
 impl KernelFramebuffer {
-    pub fn size(&self) -> usize { self.stride * self.height }
+    pub fn size(&self) -> usize {
+        self.stride * self.height
+    }
 
     pub fn new(addr: u64, width: usize, height: usize, stride: usize, pixel_format: u8) -> Self {
-       return Self {addr, width, height, stride, pixel_format} 
+        return Self {
+            addr,
+            width,
+            height,
+            stride,
+            pixel_format,
+        };
     }
 
     pub fn write(&self, x: usize, y: usize, color: u32) {
