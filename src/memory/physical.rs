@@ -1,9 +1,5 @@
 use crate::memory::{MemoryError, PAGE_SIZE};
 use core::ptr::addr_of_mut;
-use uefi::{
-    boot::MemoryType,
-    mem::memory_map::{MemoryMap, MemoryMapOwned},
-};
 
 // 4 GiB max available bitmap size (For testing)
 const MAX_WORDS: usize = 16384;

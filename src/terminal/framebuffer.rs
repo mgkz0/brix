@@ -1,26 +1,17 @@
-use uefi::proto::console::gop::{FrameBuffer, ModeInfo, PixelFormat};
-
 #[derive(Clone, Copy, Debug)]
 pub struct KernelFramebuffer {
-    pub address: u64,
-    pub size: usize,
+    pub addr: u64,
     pub width: usize,
     pub height: usize,
     pub stride: usize,
-    pub pixel_format: PixelFormat,
+    pub pixel_format: u8,
 }
 
 impl KernelFramebuffer {
-    pub fn from_gop(framebuffer: &mut FrameBuffer, mode_info: &ModeInfo) -> Self {
-        let (width, height) = mode_info.resolution();
-        KernelFramebuffer {
-            address: framebuffer.as_mut_ptr() as u64,
-            size: framebuffer.size(),
-            width,
-            height,
-            stride: mode_info.stride(),
-            pixel_format: mode_info.pixel_format(),
-        }
+    pub fn size(&self) -> usize { self.stride * self.height }
+
+    pub fn new(addr: u64, width: usize, height: usize, stride: usize, pixel_format: u8) -> Self {
+       return Self {addr, width, height, stride, pixel_format} 
     }
 
     pub fn write(&self, x: usize, y: usize, color: u32) {
@@ -28,7 +19,7 @@ impl KernelFramebuffer {
             return;
         }
         let offset = (y * self.stride + x) * 4;
-        let pixel = (self.address as usize + offset) as *mut u32;
+        let pixel = (self.addr as usize + offset) as *mut u32;
         unsafe {
             pixel.write_volatile(color);
         }
