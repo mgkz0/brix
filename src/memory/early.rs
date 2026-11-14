@@ -1,4 +1,1 @@
-
-pub struct EarlyAllocator{
-
-}
+pub struct EarlyAllocator {}
