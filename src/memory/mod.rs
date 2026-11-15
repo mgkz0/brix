@@ -6,4 +6,5 @@ pub mod virt;
 #[derive(Debug)]
 pub enum MemoryError {
     NoUsableMemory,
+    NoEmptyRegs,
 }

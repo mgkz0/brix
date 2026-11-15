@@ -15,8 +15,16 @@ use x86_64::instructions::hlt;
 #[unsafe(no_mangle)]
 pub extern "C" fn _start() -> ! {
     x86_64::instructions::interrupts::enable();
-    let fb = init_fb_from_limine();
-    let mmap = init_mmap_from_limine();
+    let Some(fb) = init_fb_from_limine() else {
+        loop {
+            hlt();
+        }
+    };
+    let Some(mmap) = init_mmap_from_limine() else {
+        loop {
+            hlt();
+        }
+    };
     crate::terminal::init_from_kernel_fb(fb, 0x00ff00, 0x000000);
     crate::devices::keyboard::init_keyboard();
     crate::println!("TEST LIMINE!!!!");
