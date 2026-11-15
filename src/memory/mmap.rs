@@ -5,6 +5,7 @@ use crate::memory::MemoryError;
 pub const PAGE_SIZE: u64 = 4096;
 pub const INIT_REGIONS_COUNT: usize = 128;
 
+#[derive(Clone, Copy, Debug)]
 pub struct Frame {
     pub idx: usize,
 }
@@ -21,12 +22,14 @@ impl Frame {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum RegionType {
     USABLE,
     USED,
     EMPTY,
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct MemRegPtr {
     pub idx: usize,
     pub current_page: usize,
@@ -49,6 +52,7 @@ impl MemRegPtr {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct MemReg {
     pub addr_start: u64,
     pub page_count: usize,
@@ -64,7 +68,7 @@ impl MemReg {
         }
     }
 
-    pub fn empty() -> Self {
+    pub const fn empty() -> Self {
         Self {
             addr_start: 0,
             page_count: 0,
@@ -95,9 +99,6 @@ impl<const N: usize> MMap<N> {
         Ok(())
     }
 
-}
-
-impl MMap { 
     pub fn get(&self, idx: usize) -> Option<&MemReg> {
         self.entries().get(idx)
     }

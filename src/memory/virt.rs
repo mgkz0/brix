@@ -1,4 +1,4 @@
-use crate::memory::PAGE_SIZE;
+use crate::memory::mmap::PAGE_SIZE;
 
 pub const USERSPACE_START: u64 = 0x0000_0000_0000_0000;
 pub const USERSPACE_END: u64 = 0x0000_7FFF_FFFF_FFFF;
