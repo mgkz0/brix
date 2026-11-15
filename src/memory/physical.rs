@@ -17,7 +17,7 @@ pub struct PMM<const N: usize> {
 impl<const N: usize> PMM<N> {
     fn is_free(&self, frame_idx: usize) -> bool {
         let bitmap_idx = frame_idx / 64;
-        if bitmap_idx > self.bitmap.len() {
+        if bitmap_idx >= self.bitmap.len() {
             return false;
         };
 
