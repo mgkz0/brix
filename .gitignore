@@ -7,5 +7,8 @@
 /iso/boot/limine/limine-uefi-cd.bin
 
 /iso/EFI/BOOT/BOOTX64.EFI
+/iso/boot/brix.elf
 
 brix.iso
+*.log
+/iso/NvVars
