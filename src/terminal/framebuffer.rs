@@ -26,7 +26,7 @@ impl KernelFramebuffer {
         if x >= self.width || y >= self.height {
             return;
         }
-        let offset = (y * self.stride + x) * 4;
+        let offset = y * self.stride + x * 4;
         let pixel = (self.addr as usize + offset) as *mut u32;
         unsafe {
             pixel.write_volatile(color);

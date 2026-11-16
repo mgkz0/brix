@@ -27,7 +27,6 @@ pub extern "C" fn _start() -> ! {
     };
     crate::terminal::init_from_kernel_fb(fb, 0x00ff00, 0x000000);
     crate::devices::keyboard::init_keyboard();
-    crate::println!("TEST LIMINE!!!!");
     loop {
         hlt();
     }
