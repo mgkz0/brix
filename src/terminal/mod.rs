@@ -25,11 +25,6 @@ pub struct Terminal {
 
 impl Terminal {
     pub fn from_kern_fb(fb: KernelFramebuffer, fg: u32, bg: u32) -> Self {
-        for y in 0..fb.height {
-            for x in 0..fb.width {
-                fb.write(x, y, 0x000000);
-            }
-        }
         let width: usize = fb.width / 8;
         let height: usize = fb.height / 8;
         Terminal {
