@@ -1,23 +1,23 @@
 #[derive(Clone, Copy, Debug)]
-pub struct KernelFramebuffer {
+pub struct Framebuffer {
     pub addr: u64,
     pub width: usize,
     pub height: usize,
-    pub stride: usize,
+    pub pitch: usize,
     pub pixel_format: u8,
 }
 
-impl KernelFramebuffer {
+impl Framebuffer {
     pub fn size(&self) -> usize {
-        self.stride * self.height
+        self.pitch * self.height
     }
 
-    pub fn new(addr: u64, width: usize, height: usize, stride: usize, pixel_format: u8) -> Self {
+    pub fn new(addr: u64, width: usize, height: usize, pitch: usize, pixel_format: u8) -> Self {
         return Self {
             addr,
             width,
             height,
-            stride,
+            pitch,
             pixel_format,
         };
     }
@@ -26,7 +26,7 @@ impl KernelFramebuffer {
         if x >= self.width || y >= self.height {
             return;
         }
-        let offset = y * self.stride + x * 4;
+        let offset = y * self.pitch + x * 4;
         let pixel = (self.addr as usize + offset) as *mut u32;
         unsafe {
             pixel.write_volatile(color);
