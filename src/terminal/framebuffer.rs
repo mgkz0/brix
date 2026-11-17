@@ -13,16 +13,6 @@ impl Framebuffer {
         (self.pitch * self.height) as usize
     }
 
-    pub fn new(addr: *mut u8, width: u64, height: u64, pitch: u64, bits_per_pixel: u64) -> Self {
-        return Self {
-            addr,
-            width,
-            height,
-            pitch,
-            bits_per_pixel,
-        };
-    }
-
     pub fn write(&self, x: usize, y: usize, color: u32) {
         if x >= self.width as usize || y >= self.height as usize {
             return;
