@@ -1,4 +1,5 @@
 pub mod framebuffer;
+pub mod mmap;
 pub mod request;
 
 #[used]

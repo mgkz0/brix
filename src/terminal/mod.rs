@@ -25,8 +25,8 @@ pub struct Terminal {
 
 impl Terminal {
     pub fn from_kern_fb(fb: Framebuffer, fg: u32, bg: u32) -> Self {
-        let width: usize = fb.width / 8;
-        let height: usize = fb.height / 8;
+        let width: usize = fb.width as usize / 8;
+        let height: usize = fb.height as usize / 8;
         Terminal {
             fb,
             width,

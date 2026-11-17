@@ -9,30 +9,7 @@ pub static FB_REQUEST: LimineRequest<FramebufferResponse> = LimineRequest::new(F
 #[repr(C)]
 pub struct FramebufferResponse {
     pub framebuffer_count: u64,
-    pub framebuffers: *const *mut LimineFramebuffer,
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug)]
-pub struct LimineFramebuffer {
-    pub addr: *mut u8,
-    pub width: u64,
-    pub height: u64,
-    pub pitch: u64,
-    pub bits_per_pixel: u16,
-    pub memory_model: u8,
-}
-
-impl LimineFramebuffer {
-    pub fn to_kernel(&self) -> Framebuffer {
-        Framebuffer::new(
-            self.addr as u64,
-            self.width as usize,
-            self.height as usize,
-            self.pitch as usize,
-            self.memory_model,
-        )
-    }
+    pub framebuffers: *const *mut Framebuffer,
 }
 
 pub fn init_fb() -> Framebuffer {
@@ -47,5 +24,5 @@ pub fn init_fb() -> Framebuffer {
             hlt();
         }
     }
-    unsafe { &**fb_ptr }.to_kernel()
+    unsafe { **fb_ptr }
 }

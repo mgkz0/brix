@@ -17,6 +17,9 @@ pub extern "C" fn _start() -> ! {
     let fb = boot::limine::framebuffer::init_fb();
     crate::terminal::init_from_kernel_fb(fb, 0x00ff00, 0x000000);
     crate::devices::keyboard::init_keyboard();
+    crate::println!("BPP: {}", fb.bits_per_pixel);
+    crate::println!("HEIGHT: {}", fb.height);
+    crate::println!("ADDRESS: {}", fb.addr as u64);
     loop {
         hlt();
     }
