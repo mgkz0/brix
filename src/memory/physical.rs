@@ -8,13 +8,13 @@ use core::ptr::addr_of_mut;
 const MAX_WORDS: usize = 16384;
 static mut BITMAP: [u64; MAX_WORDS] = [0; MAX_WORDS];
 
-pub struct PMM<const N: usize> {
-    mmap: MMap<N>,
+pub struct PMM {
+    mmap: MMap,
     reg_ptr: MemRegPtr,
     bitmap: &'static mut [u64],
 }
 
-impl<const N: usize> PMM<N> {
+impl PMM {
     fn is_free(&self, frame_idx: usize) -> bool {
         let bitmap_idx = frame_idx / 64;
         if bitmap_idx >= self.bitmap.len() {
@@ -24,11 +24,11 @@ impl<const N: usize> PMM<N> {
         (self.bitmap[bitmap_idx] & (1u64 << (frame_idx % 64))) == 0
     }
 
-    pub fn from_mmap(mmap: MMap<N>) -> Result<Self, MemoryError> {
-        for (reg_idx, reg) in mmap.entries().iter().enumerate() {
-            if reg.ty == RegionType::USABLE {
+    pub fn from_mmap(mmap: MMap) -> Result<Self, MemoryError> {
+        for (reg_idx, reg) in mmap.entries().enumerate() {
+            if reg.ty() == RegionType::Usable {
                 let bitmap = unsafe { &mut *addr_of_mut!(BITMAP) };
-                let reg_ptr = MemRegPtr::new(reg_idx, 0, reg.addr_start, reg.page_count);
+                let reg_ptr = MemRegPtr::new(reg_idx, 0, reg.base, reg.length);
                 return Ok(Self {
                     mmap,
                     reg_ptr,
@@ -40,7 +40,7 @@ impl<const N: usize> PMM<N> {
     }
 
     fn allocate_from_reg(&mut self) -> Option<Frame> {
-        while self.reg_ptr.current_page < self.reg_ptr.page_count {
+        while self.reg_ptr.current_page < self.reg_ptr.page_count() {
             let frame = self.reg_ptr.frame();
             self.reg_ptr.current_page += 1;
             if self.is_free(frame.idx) {
@@ -55,14 +55,14 @@ impl<const N: usize> PMM<N> {
         if let Some(frame) = self.allocate_from_reg() {
             return Ok(frame);
         } else {
-            let range = (self.reg_ptr.idx + 1)..self.mmap.entries().iter().len();
+            let range = (self.reg_ptr.idx + 1)..self.mmap.entry_count as usize;
             for reg_idx in range {
                 let Some(reg) = self.mmap.get(reg_idx) else {
                     continue;
                 };
 
-                if reg.ty == RegionType::USABLE {
-                    self.reg_ptr = MemRegPtr::new(reg_idx, 0, reg.addr_start, reg.page_count);
+                if reg.ty() == RegionType::Usable {
+                    self.reg_ptr = MemRegPtr::new(reg_idx, 0, reg.base, reg.length);
                     if let Some(frame) = self.allocate_from_reg() {
                         return Ok(frame);
                     }
@@ -83,17 +83,12 @@ impl<const N: usize> PMM<N> {
                 let Some(reg) = self.mmap.get(reg_idx) else {
                     continue;
                 };
-                if reg.ty == RegionType::USABLE {
-                    let range =
-                        reg.addr_start..(reg.addr_start + PAGE_SIZE * reg.page_count as u64);
+                if reg.ty() == RegionType::Usable {
+                    let range = reg.base..(reg.base + reg.length);
                     if range.contains(&frame.addr()) {
                         let new_page = (frame.addr() - range.start) / PAGE_SIZE;
-                        self.reg_ptr = MemRegPtr::new(
-                            reg_idx,
-                            new_page as usize,
-                            reg.addr_start,
-                            reg.page_count,
-                        );
+                        self.reg_ptr =
+                            MemRegPtr::new(reg_idx, new_page as usize, reg.base, reg.length);
                         return;
                     }
                 }
