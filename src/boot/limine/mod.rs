@@ -20,9 +20,10 @@ const COMMON_MAGIC: [u64; 2] = [0xc7b1dd30df4c8b88, 0x0a82e883a194f07b];
 pub const MEMORY_MAP_ID: [u64; 4] = [
     COMMON_MAGIC[0],
     COMMON_MAGIC[1],
-    0x95a67b819a1b857e,
-    0xa0b61b723b6a73e0,
+    0x67cf3d9d378a806f,
+    0xe304acdfc50c3c62,
 ];
+
 pub const FRAMEBUFFER_ID: [u64; 4] = [
     COMMON_MAGIC[0],
     COMMON_MAGIC[1],

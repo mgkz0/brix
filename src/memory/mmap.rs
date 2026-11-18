@@ -63,11 +63,13 @@ impl MemRegPtr {
     }
 }
 
+
+#[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct MemReg {
     pub base: u64,
     pub length: u64,
-    type_: u64,
+    pub type_: u64,
 }
 
 impl MemReg {
@@ -91,6 +93,8 @@ impl MemReg {
     }
 }
 
+
+#[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct MMap {
     pub entry_count: u64,
