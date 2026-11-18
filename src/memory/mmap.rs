@@ -1,7 +1,3 @@
-use core::slice::from_raw_parts;
-
-use crate::memory::{MemoryError, mmap::RegionType::AcpiNvs};
-
 pub const PAGE_SIZE: u64 = 4096;
 pub const INIT_REGIONS_COUNT: usize = 128;
 
@@ -63,7 +59,6 @@ impl MemRegPtr {
     }
 }
 
-
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct MemReg {
@@ -92,7 +87,6 @@ impl MemReg {
         }
     }
 }
-
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]

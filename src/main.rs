@@ -8,7 +8,6 @@ pub mod memory;
 pub mod panic;
 pub mod terminal;
 
-use crate::terminal::framebuffer::Framebuffer;
 use x86_64::instructions::hlt;
 
 #[unsafe(no_mangle)]
