@@ -1,28 +1,17 @@
+use x86_64::instructions::hlt;
+
+use crate::boot::limine::request::LimineResponse;
 use crate::boot::limine::{MEMORY_MAP_ID, request::LimineRequest};
+use crate::memory::mmap::{RegionType, MMap, MemReg};
 
-#[repr(u64)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LimineRegType {
-    Usable = 0,
-    Reserved = 1,
-    AcpiReclaimable = 2,
-    AcpiNvs = 3,
-    BadMemory = 4,
-    BootloaderReclaimable = 5,
-    ExecutableAndModules = 6,
-    Framebuffer = 7,
-    MappedReserved = 8,
+pub static MMAP_REQUEST: LimineRequest<MMap> = LimineRequest::new(MEMORY_MAP_ID, 0);
+
+
+pub fn init_mmap() -> MMap {
+    let Some(resp) = MMAP_REQUEST.get() else {
+        loop {
+            hlt();
+        }
+    };
+    return resp.data
 }
-
-pub struct LimineMemReg {
-    pub base: u64,
-    pub length: u64,
-    pub type_: u64,
-}
-
-pub struct LimineMemoryMap {
-    entry_count: u64,
-    entries: *const *mut LimineMemReg,
-}
-
-pub static MMAP_REQUEST: LimineRequest<LimineMemoryMap> = LimineRequest::new(MEMORY_MAP_ID, 0);

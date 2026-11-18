@@ -22,11 +22,18 @@ impl Frame {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[repr(u64)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RegionType {
-    USABLE,
-    USED,
-    EMPTY,
+    Usable = 0,
+    Reserved = 1,
+    AcpiReclaimable = 2,
+    AcpiNvs = 3,
+    BadMemory = 4,
+    BootloaderReclaimable = 5,
+    ExecutableAndModules = 6,
+    Framebuffer = 7,
+    MappedReserved = 8,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -54,56 +61,31 @@ impl MemRegPtr {
 
 #[derive(Clone, Copy, Debug)]
 pub struct MemReg {
-    pub addr_start: u64,
-    pub page_count: usize,
-    pub ty: RegionType,
+    pub base: u64,
+    pub length: u64,
+    pub type_: u64,
 }
 
 impl MemReg {
-    pub fn new(addr_start: u64, page_count: usize, ty: RegionType) -> Self {
-        Self {
-            addr_start,
-            page_count,
-            ty,
-        }
-    }
-
-    pub const fn empty() -> Self {
-        Self {
-            addr_start: 0,
-            page_count: 0,
-            ty: RegionType::EMPTY,
-        }
+    pub fn page_count(&self) -> usize {
+        (self.length / PAGE_SIZE) as usize
     }
 }
 
-pub struct MMap<const N: usize> {
-    regions: [MemReg; N],
-    count: usize,
+#[derive(Clone, Copy, Debug)]
+pub struct MMap {
+    entry_count: u64,
+    entries: *const *mut MemReg,
 }
 
-impl<const N: usize> MMap<N> {
-    pub const fn new() -> Self {
-        Self {
-            regions: [MemReg::empty(); N],
-            count: 0,
-        }
+
+impl MMap {
+    pub fn entries(&self) -> &[*mut MemReg]{
+        unsafe {core::slice::from_raw_parts(self.entries, self.entry_count as usize)}
     }
 
-    pub fn add(&mut self, reg: MemReg) -> Result<(), MemoryError> {
-        if self.count >= N {
-            return Err(MemoryError::NoEmptyRegs);
-        }
-        self.regions[self.count] = reg;
-        self.count += 1;
-        Ok(())
-    }
-
-    pub fn get(&self, idx: usize) -> Option<&MemReg> {
+    pub fn get(&self, idx: usize) -> Option<&*mut MemReg> {
         self.entries().get(idx)
     }
 
-    pub fn entries(&self) -> &[MemReg] {
-        unsafe { from_raw_parts(self.regions.as_ptr().cast::<MemReg>(), self.count) }
-    }
 }
