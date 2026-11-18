@@ -2,19 +2,19 @@ pub mod framebuffer;
 
 use core::fmt;
 use font8x8::{BASIC_FONTS, UnicodeFonts};
-use framebuffer::KernelFramebuffer;
+use framebuffer::Framebuffer;
 use spin::Mutex;
 
 pub static TERMINAL: Mutex<Option<Terminal>> = Mutex::new(None);
 
-pub fn init_from_kernel_fb(fb: KernelFramebuffer, fg: u32, bg: u32) {
+pub fn init_from_kernel_fb(fb: Framebuffer, fg: u32, bg: u32) {
     let terminal = Terminal::from_kern_fb(fb, fg, bg);
     *TERMINAL.lock() = Some(terminal)
 }
 
 #[derive(Clone, Copy, Debug)]
 pub struct Terminal {
-    pub fb: KernelFramebuffer,
+    pub fb: Framebuffer,
     pub width: usize,
     pub height: usize,
     pub x: usize,
@@ -24,9 +24,9 @@ pub struct Terminal {
 }
 
 impl Terminal {
-    pub fn from_kern_fb(fb: KernelFramebuffer, fg: u32, bg: u32) -> Self {
-        let width: usize = fb.width / 8;
-        let height: usize = fb.height / 8;
+    pub fn from_kern_fb(fb: Framebuffer, fg: u32, bg: u32) -> Self {
+        let width: usize = fb.width as usize / 8;
+        let height: usize = fb.height as usize / 8;
         Terminal {
             fb,
             width,

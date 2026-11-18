@@ -1,7 +1,3 @@
-use core::slice::from_raw_parts;
-
-use crate::memory::MemoryError;
-
 pub const PAGE_SIZE: u64 = 4096;
 pub const INIT_REGIONS_COUNT: usize = 128;
 
@@ -22,88 +18,93 @@ impl Frame {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RegionType {
-    USABLE,
-    USED,
-    EMPTY,
+    Usable,
+    Reserved,
+    AcpiReclaimable,
+    AcpiNvs,
+    BadMemory,
+    BootloaderReclaimable,
+    ExecutableAndModules,
+    Framebuffer,
+    MappedReserved,
+    Unknown,
 }
 
 #[derive(Clone, Copy, Debug)]
 pub struct MemRegPtr {
     pub idx: usize,
     pub current_page: usize,
-    pub addr_start: u64,
-    pub page_count: usize,
+    pub base: u64,
+    pub length: u64,
 }
 
 impl MemRegPtr {
-    pub fn new(idx: usize, current_page: usize, addr_start: u64, page_count: usize) -> Self {
+    pub fn new(idx: usize, current_page: usize, base: u64, length: u64) -> Self {
         Self {
             idx,
             current_page,
-            addr_start,
-            page_count,
+            base,
+            length,
         }
+    }
+
+    pub fn page_count(&self) -> usize {
+        (self.length / PAGE_SIZE) as usize
     }
 
     pub fn frame(&self) -> Frame {
-        Frame::new(self.addr_start + PAGE_SIZE * self.current_page as u64)
+        Frame::new(self.base + PAGE_SIZE * self.current_page as u64)
     }
 }
 
+#[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct MemReg {
-    pub addr_start: u64,
-    pub page_count: usize,
-    pub ty: RegionType,
+    pub base: u64,
+    pub length: u64,
+    pub type_: u64,
 }
 
 impl MemReg {
-    pub fn new(addr_start: u64, page_count: usize, ty: RegionType) -> Self {
-        Self {
-            addr_start,
-            page_count,
-            ty,
-        }
+    pub fn page_count(&self) -> usize {
+        (self.length / PAGE_SIZE) as usize
     }
 
-    pub const fn empty() -> Self {
-        Self {
-            addr_start: 0,
-            page_count: 0,
-            ty: RegionType::EMPTY,
+    pub fn ty(&self) -> RegionType {
+        match self.type_ {
+            0 => RegionType::Usable,
+            1 => RegionType::Reserved,
+            2 => RegionType::AcpiReclaimable,
+            3 => RegionType::AcpiNvs,
+            4 => RegionType::BadMemory,
+            5 => RegionType::BootloaderReclaimable,
+            6 => RegionType::ExecutableAndModules,
+            7 => RegionType::Framebuffer,
+            8 => RegionType::MappedReserved,
+            _ => RegionType::Unknown,
         }
     }
 }
 
-pub struct MMap<const N: usize> {
-    regions: [MemReg; N],
-    count: usize,
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct MMap {
+    pub entry_count: u64,
+    entries: *const *mut MemReg,
 }
 
-impl<const N: usize> MMap<N> {
-    pub const fn new() -> Self {
-        Self {
-            regions: [MemReg::empty(); N],
-            count: 0,
-        }
+impl MMap {
+    pub fn slice(&self) -> &[*mut MemReg] {
+        unsafe { core::slice::from_raw_parts(self.entries, self.entry_count as usize) }
     }
 
-    pub fn add(&mut self, reg: MemReg) -> Result<(), MemoryError> {
-        if self.count >= N {
-            return Err(MemoryError::NoEmptyRegs);
-        }
-        self.regions[self.count] = reg;
-        self.count += 1;
-        Ok(())
+    pub fn entries(&self) -> impl Iterator<Item = &MemReg> {
+        self.slice().iter().map(|ptr| unsafe { &**ptr })
     }
 
     pub fn get(&self, idx: usize) -> Option<&MemReg> {
-        self.entries().get(idx)
-    }
-
-    pub fn entries(&self) -> &[MemReg] {
-        unsafe { from_raw_parts(self.regions.as_ptr().cast::<MemReg>(), self.count) }
+        self.slice().get(idx).map(|ptr| unsafe { &**ptr })
     }
 }

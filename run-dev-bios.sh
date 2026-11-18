@@ -1,5 +1,7 @@
 cargo +nightly build --release --target x86_64-unknown-none
 
+cp target/x86_64-unknown-none/release/brix iso/boot/brix.elf
+
 xorriso -as mkisofs \
     -b boot/limine/limine-bios-cd.bin \
     -no-emul-boot \
