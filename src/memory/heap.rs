@@ -1,3 +1,1 @@
-pub struct HeapAllocator {
-
-}
+pub struct HeapAllocator {}

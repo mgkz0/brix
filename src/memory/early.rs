@@ -11,10 +11,10 @@ pub struct EarlyVirtAllocator {
 impl EarlyVirtAllocator {
     pub fn new() -> Self {
         return Self {
-            current_page: 0, 
-            start: KERNELSPACE_START, 
-            end: (KERNELSPACE_START + EARLY_ALLOC_PAGE_COUNT as u64 * PAGE_SIZE)
-        }
+            current_page: 0,
+            start: KERNELSPACE_START,
+            end: (KERNELSPACE_START + EARLY_ALLOC_PAGE_COUNT as u64 * PAGE_SIZE),
+        };
     }
 
     fn current(&self) -> u64 {
@@ -22,14 +22,14 @@ impl EarlyVirtAllocator {
     }
 
     pub fn allocate_vm(&mut self, page_count: usize) -> Result<u64, MemoryError> {
-        if page_count > EARLY_ALLOC_PAGE_COUNT 
-            || page_count == 0 
-            || EARLY_ALLOC_PAGE_COUNT < self.current_page + page_count {
-            return Err(MemoryError::OutOfMemory)
+        if page_count > EARLY_ALLOC_PAGE_COUNT
+            || page_count == 0
+            || EARLY_ALLOC_PAGE_COUNT < self.current_page + page_count
+        {
+            return Err(MemoryError::OutOfMemory);
         }
-        let addr = self.current(); 
+        let addr = self.current();
         self.current_page += page_count;
         Ok(addr)
     }
-
 }

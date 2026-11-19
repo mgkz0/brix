@@ -1,8 +1,8 @@
 pub mod early;
+pub mod heap;
 pub mod mmap;
 pub mod physical;
 pub mod virt;
-pub mod heap;
 
 #[derive(Debug)]
 pub enum MemoryError {
