@@ -1,6 +1,11 @@
 pub mod framebuffer;
 pub mod mmap;
 pub mod request;
+pub mod hhdm;
+
+
+pub const LIMINE_REVISION: u64 = 0;
+
 
 #[used]
 #[unsafe(link_section = ".limine_requests_start")]
@@ -29,4 +34,11 @@ pub const FRAMEBUFFER_ID: [u64; 4] = [
     COMMON_MAGIC[1],
     0x9d5827dcd881dd75,
     0xa3148604f6fab11b,
+];
+
+pub const HHDM_ID: [u64; 4] = [
+    COMMON_MAGIC[0],
+    COMMON_MAGIC[1],
+    0x48dcf1cb8ad2b852, 
+    0x63984e959a98244b,
 ];

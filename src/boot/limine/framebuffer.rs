@@ -1,10 +1,10 @@
-use crate::boot::limine::{FRAMEBUFFER_ID, request::LimineRequest};
+use crate::boot::limine::{LIMINE_REVISION, FRAMEBUFFER_ID, request::LimineRequest};
 use crate::terminal::framebuffer::Framebuffer;
 use x86_64::instructions::hlt;
 
 #[used]
 #[unsafe(link_section = ".limine_requests")]
-pub static FB_REQUEST: LimineRequest<FramebufferResponse> = LimineRequest::new(FRAMEBUFFER_ID, 0);
+pub static FB_REQUEST: LimineRequest<FramebufferResponse> = LimineRequest::new(FRAMEBUFFER_ID, LIMINE_REVISION);
 
 #[repr(C)]
 pub struct FramebufferResponse {
