@@ -16,12 +16,17 @@ pub extern "C" fn _start() -> ! {
     let fb = boot::limine::framebuffer::init_fb();
     crate::terminal::init_from_kernel_fb(fb, 0x00ff00, 0x000000);
     crate::devices::keyboard::init_keyboard();
-    let Some(mmap) = crate::boot::limine::mmap::init_mmap() else {
+    let Some(mm) = boot::limine::mmap::init_mmap() else {
         crate::println!("MemoryMap is None!");
         loop {
             hlt();
         }
     };
+    crate::println!("MMAP: {}", mm.entry_count);
+    let val = crate::memory::ptables::read_maxphysaddr();
+    crate::println!("BITS: {}", val);
+    let cr = crate::memory::ptables::read_cr3();
+    crate::println!("CR3: {}", cr);
     loop {
         hlt();
     }

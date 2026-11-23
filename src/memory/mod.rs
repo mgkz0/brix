@@ -3,6 +3,7 @@ pub mod heap;
 pub mod mmap;
 pub mod physical;
 pub mod virt;
+pub mod ptables;
 
 #[derive(Debug)]
 pub enum MemoryError {

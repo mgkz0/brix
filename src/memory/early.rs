@@ -17,10 +17,6 @@ impl EarlyVirtAllocator {
         };
     }
 
-    fn current(&self) -> u64 {
-        self.start + self.current_page as u64 * PAGE_SIZE
-    }
-
     pub fn allocate_vm(&mut self, page_count: usize) -> Result<u64, MemoryError> {
         if page_count > EARLY_ALLOC_PAGE_COUNT
             || page_count == 0
@@ -28,7 +24,7 @@ impl EarlyVirtAllocator {
         {
             return Err(MemoryError::OutOfMemory);
         }
-        let addr = self.current();
+        let addr = self.start + self.current_page as u64 * PAGE_SIZE;
         self.current_page += page_count;
         Ok(addr)
     }
