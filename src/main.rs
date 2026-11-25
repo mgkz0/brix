@@ -8,9 +8,8 @@ pub mod memory;
 pub mod panic;
 pub mod terminal;
 
+use boot::limine::{framebuffer, hhdm, mmap};
 use x86_64::instructions::hlt;
-use boot::limine::{mmap, framebuffer, hhdm};
-
 
 #[unsafe(no_mangle)]
 pub extern "C" fn _start() -> ! {
@@ -25,7 +24,7 @@ pub extern "C" fn _start() -> ! {
         }
     };
     let offset = hhdm::init_hhdm_offset();
-    crate::memory::set_dm_offset(offset);
+    crate::memory::dm::set_dm_offset(offset);
     crate::println!("OFFSET: {}", offset);
     loop {
         hlt();
